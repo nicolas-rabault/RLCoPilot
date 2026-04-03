@@ -314,6 +314,7 @@ Ask the user until the goal is clear:
 Read the relevant code before changing anything. Get source file paths from `config.md` → Source Files section.
 - Read task config, rewards, curriculum, observations
 - Previous run results if available (`logs/sessions/`)
+- Read `docs/training-learnings.md` for known pitfalls and proven techniques from past experiments
 - Write findings in `logs/sessions/<branch-sanitized>/run_NNN/analysis.md`
 
 ### Step 2: BRAINSTORM
@@ -431,6 +432,8 @@ Invoke `superpowers:systematic-debugging` skill. Follow its phases:
     Look for patterns: if 3+ iterations share the same human feedback tag
     with no corresponding metric improvement, flag this in the diagnosis:
     "Persistent issue: <tag> reported across runs N, M, P — suggest re-running Metric Design Agent."
+5d. Read `docs/training-learnings.md` — check if the current failure matches a known pattern.
+    If a learning entry directly addresses the observed failure, reference it in the diagnosis.
 
 **Pattern Analysis:**
 6. Find working examples: look at successful runs (if any) or known-good configs in the codebase

@@ -1,0 +1,21 @@
+{
+  "name": "rlpilot",
+  "owner": {
+    "name": "Nicolas Rabault"
+  },
+  "metadata": {
+    "description": "RLPilot — Autonomous RL training management plugin for Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "rlpilot",
+      "source": "./",
+      "description": "Autonomous RL training management — launch, monitor, evaluate, and iterate on remote GPU servers",
+      "version": "0.1.0",
+      "author": {
+        "name": "Nicolas Rabault"
+      }
+    }
+  ]
+}

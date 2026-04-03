@@ -611,11 +611,25 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
    - Add iteration: uv run .claude/rl-training/scripts/session.py add-iteration <session_dir> --run N --result "<one-line from decide.py reasons>"
    - mkdir -p <session_dir>/run_{new N padded}/
    - If current_run > max_iterations from config: use --set phase=PAUSED instead of ITERATE.
+     When setting phase=PAUSED, also run the learning agent (foreground):
+     Run: uv run .claude/rl-training/scripts/learnings.py <session_dir> --run <N>
+     Read docs/training-learnings.md.
+     Based on the report, update docs/training-learnings.md with new insights.
+     Focus especially on "What Doesn't Work" — this training hit max iterations without success.
+     Commit changes if any: "learnings: <what was learned>"
    - Notify: bash .claude/rl-training/scripts/notify.sh "<notification from decide.py>" --branch "<BRANCH>"
    - Delete this cron: CronDelete with ID <CRON_ID>. Exit.
 
    If decision = FINISH:
    - uv run .claude/rl-training/scripts/session.py update <session_dir> --set phase=FINISHED
+   - Run learning agent (foreground, before finishing):
+     Run: uv run .claude/rl-training/scripts/learnings.py <session_dir> --run <current_run>
+     Read docs/training-learnings.md.
+     Based on the report, update docs/training-learnings.md with new insights:
+     - Add actionable insights backed by evidence from this successful run
+     - Update or remove entries contradicted by new evidence
+     - Keep entries concise, task-qualified when needed
+     - Commit changes: "learnings: <what was learned>"
    - Notify: bash .claude/rl-training/scripts/notify.sh "<notification from decide.py>" --branch "<BRANCH>"
    - Delete this cron: CronDelete with ID <CRON_ID>. Exit.
 

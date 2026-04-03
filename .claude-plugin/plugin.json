@@ -1,11 +1,11 @@
 {
-  "name": "rlpilot",
+  "name": "rlcopilot",
   "description": "Autonomous RL training management — launch, monitor, evaluate, and iterate on remote GPU servers with multi-agent architecture",
   "version": "0.1.0",
   "author": {
     "name": "Nicolas Rabault"
   },
-  "repository": "https://github.com/nicolas-rabault/RLPilot",
+  "repository": "https://github.com/nicolas-rabault/RLCoPilot",
   "license": "MIT",
   "keywords": ["rl", "reinforcement-learning", "training", "robotics", "wandb", "mujoco"]
 }

@@ -1,4 +1,4 @@
-# RLPilot — Claude Code Plugin
+# RLCoPilot — Claude Code Plugin
 
 Autonomous RL training management for Claude Code. Launch training on remote GPU servers, monitor metrics via WandB, auto-evaluate policies, and iterate on failures — all driven by Claude.
 
@@ -24,16 +24,16 @@ Multiple training sessions can run in parallel on different branches and hosts.
 ```bash
 # Inside Claude Code
 # Add the marketplace
-/plugin marketplace add nicolas-rabault/RLPilot
+/plugin marketplace add nicolas-rabault/RLCoPilot
 
 # Install the plugin
-/plugin install rlpilot@nicolas-rabault/RLPilot
+/plugin install rlcopilot@nicolas-rabault/RLCoPilot
 ```
 
 Or for local development:
 
 ```bash
-claude --plugin-dir /path/to/rlpilot
+claude --plugin-dir /path/to/rlcopilot
 ```
 
 ## First-time setup

@@ -22,6 +22,7 @@ Multiple training sessions can run in parallel on different branches and hosts.
 ## Install
 
 ```bash
+# Inside Claude Code
 # Add the marketplace
 /plugin marketplace add nicolas-rabault/RLPilot
 
@@ -78,6 +79,7 @@ your-project/
 ### Session management
 
 Each training session is tied to a git branch. Sessions track:
+
 - Current phase (LAUNCH → MONITOR → ITERATE or FINISHED)
 - Run history with metrics snapshots
 - Iteration log (what was tried and why it failed)
@@ -85,6 +87,7 @@ Each training session is tied to a git branch. Sessions track:
 ### Monitoring decisions
 
 The cron agent compares key metrics against configurable thresholds:
+
 - **KEEP**: Metrics improving or stable
 - **BAD**: Reward dropped >10% from peak, or errors increasing
 - **FINISH**: Reward plateaued and eval metrics are acceptable
@@ -94,6 +97,7 @@ After consecutive bad readings (default: 2), training is killed and the ITERATE 
 ### Iteration loop
 
 On failure, Claude:
+
 1. Reads the metric history and previous iteration attempts
 2. Diagnoses the root cause using systematic debugging
 3. Makes a targeted fix (one hypothesis, one change)

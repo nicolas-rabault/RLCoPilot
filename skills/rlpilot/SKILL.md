@@ -433,8 +433,10 @@ This is a single message, not a blocking wait. The agent continues to IMPLEMENT 
 If the user later provides qualitative feedback (in a follow-up message or during any subsequent interaction):
 - Parse feedback into structured tags from the vocabulary in tasks/<name>/monitor_config.md → Human Feedback Tags
 - Accept free-text notes that don't map to tags
-- Update the relevant run's result.md → Human Assessment section in-place
-- Update session_state.json → iterations[N].human_feedback with {tags: [...], notes: "..."}
+- Use the feedback script to persist deterministically:
+  uv run .claude/rl-training/scripts/feedback.py <session_dir> --run <N> --tags "<tags>" --notes "<notes>" [--task-config TASK_DIR/monitor_config.md]
+  This updates both result.md and session_state.json reliably.
+  The LLM's job is: classify the user's free-text into tags from monitor_config.md, then call the script.
 - This feedback is then available to future ITERATE phases
 
 ### Step 2: IMPLEMENT
@@ -509,16 +511,15 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
 
 2. Fetch metrics:
    Read config.md → Monitoring.Tool and Monitoring.Metric categories.
-   uv run .claude/rl-training/scripts/monitor.py <wandb_run_path> [--previous <prev_monitor>] [--categories <from config>]
+   uv run .claude/rl-training/scripts/monitor.py <wandb_run_path> [--previous <prev_monitor>] [--categories <from config>] --raw-output run_NNN/raw_metrics_{M padded}.json
    Save output to: run_NNN/monitor_{M padded}.md
+   The --raw-output flag writes raw metrics directly to a JSON file (no extraction needed).
    Check exit code: if exit code is 2, the run has crashed/been killed externally — treat as BAD immediately (skip to KILL in step 6).
    If this fails for other reasons, notify via notify.sh --branch "<BRANCH>" "Monitor error — <error>" and exit.
 
 2b. Compute quality metrics (if TASK_DIR exists):
-    Extract raw metrics JSON from the monitor output file (the <!-- RAW_METRICS:...--> comment).
-    Save raw metrics to a temp file: run_NNN/raw_metrics_MMM.json
     Previous derived: run_NNN/derived_metrics_{M-1 padded}.json (if M > 1)
-    Run: uv run TASK_DIR/monitor_metrics.py run_NNN/raw_metrics_MMM.json [--previous <prev_derived>] --config TASK_DIR/monitor_config.md
+    Run: uv run TASK_DIR/monitor_metrics.py run_NNN/raw_metrics_{M padded}.json [--previous <prev_derived>] --config TASK_DIR/monitor_config.md
     Capture stdout → save to run_NNN/derived_metrics_{M padded}.json
     Capture stderr → append to run_NNN/monitor_{M padded}.md (quality metrics markdown)
     If this fails, log warning but continue with standard metrics only.
@@ -532,65 +533,40 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
     evaluate_policy.py should call TASK_DIR/eval_metrics.py's analyze_trajectory() for each scenario.
     The task-specific quality breakdown is included in eval_metrics.md and eval_metrics.json.
 
-4. Send notification (if enabled and monitor_update in When list):
-   Compose message with actual newlines using printf:
-   MSG=$(printf 'Monitor %d — Run %d (step %s)\n%s\nTrend: %s\nProject: %s' "$M" "$RUN" "$STEP" "$KEY_METRICS" "$TREND" "$(basename $(pwd))")
+4. Send pre-decision notification (if enabled and monitor_update in When list):
+   Read the quality metrics markdown from step 2b stderr (appended to monitor file).
    If VIDEO_PATH is non-empty and the file exists, attach it:
      bash .claude/rl-training/scripts/notify.sh "$MSG" --branch "<BRANCH>" --file "$VIDEO_PATH"
    Otherwise:
      bash .claude/rl-training/scripts/notify.sh "$MSG" --branch "<BRANCH>"
-   If derived metrics exist (run_NNN/derived_metrics_{M padded}.json):
-     Read quality_score and sub-scores.
-     Append to MSG: printf '\nQuality: %.2f' "$QUALITY_SCORE"
-     If any sub-score is below quality_score_bad_threshold from monitor_config.md:
-       Append warning: printf ' (%s: %.2f ⚠)' "$SUB_METRIC" "$SUB_SCORE"
 
-5. DECIDE by comparing current key metrics against the previous monitor file:
-   Compare each key metric (from config.md → Key metrics) to its previous value.
-   If config.md has a "Decision criteria" section, use those thresholds. Otherwise use these defaults:
-   - **KEEP**: at least one key metric improved OR all are stable (changed < 5%) AND training step is advancing
-   - **FINISH**: main reward metric plateaued (< 2% change over last 3 monitors) AND eval metrics are acceptable (low error, few falls)
-   - **BAD**: main reward metric degraded > 10% from its peak, OR key tracking metrics worsening for 2+ consecutive monitors, OR training step hasn't advanced (stalled)
-   When in doubt between KEEP and BAD, choose KEEP — false kills waste more time than extra monitoring.
-   Additional rules (if TASK_DIR and monitor_config.md exist):
-   Read quality decision rules from monitor_config.md.
-   - If reward_vs_quality_divergence is true:
-     Check if reward is improving (> 5% gain) but quality_score is declining (> 5% drop)
-     for quality_declining_monitors consecutive monitors → BAD
-   - If quality_score < quality_score_bad_threshold → BAD
-   - For FINISH: also require quality_score >= quality_finish_minimum
-   - If quality_score dropped below quality_score_bad_threshold, trigger eval on next tick
-     (set a flag in session_state.json: "eval_requested": true)
+5. DECIDE using the decision script:
+   Run: uv run .claude/rl-training/scripts/decide.py run_NNN/ --monitor M --config .claude/rl-training/config.md [--task-config TASK_DIR/monitor_config.md] [--session-dir <session_dir>]
+   Read the JSON output: {decision, should_kill, reasons, consecutive_bad, eval_requested, notification}.
+   If eval_requested is true:
+     uv run .claude/rl-training/scripts/session.py update <session_dir> --set eval_requested=true
 
-6. ACT:
+6. ACT based on decide.py output:
 
-   If KEEP:
-   - Update session_state.json: monitor_count = M, consecutive_bad = 0
+   If decision = KEEP (and not should_kill):
+   - uv run .claude/rl-training/scripts/session.py update <session_dir> --set monitor_count=M --set consecutive_bad=0
 
-   If BAD (consecutive_bad < kill_threshold - 1):
-   - Update session_state.json: monitor_count = M, consecutive_bad += 1
+   If decision = BAD and not should_kill:
+   - uv run .claude/rl-training/scripts/session.py update <session_dir> --set monitor_count=M --set consecutive_bad=<value from decide.py>
 
-   If BAD (consecutive_bad >= kill_threshold - 1) → KILL:
+   If should_kill = true → KILL:
    - Kill training: bash .claude/rl-training/hosts/<host>/kill.sh <BRANCH_SANITIZED>
-   - Write run_NNN/result.md with: goal, kill step, metrics at death, eval results, trend, assessment,
-     quality metrics trend across monitors (read derived_metrics_*.json files),
-     which quality sub-scores triggered the kill (if applicable).
-   - Append Human Assessment section to result.md:
-     ## Human Assessment
-     Tags: []
-     Notes: No feedback yet.
-   - Update session_state.json:
-     - phase: "ITERATE"
-     - Add to iterations: {run: N, result: "<one-line>", human_feedback: null}
-     - Increment current_run
-     - mkdir -p logs/sessions/<BRANCH_SANITIZED>/run_{new N padded}/
-   - If current_run > max_iterations from config: set phase: "PAUSED" instead of "ITERATE".
-   - Notify via notify.sh --branch "<BRANCH>": printf "Run %d killed — %s\nPhase: %s\nInvoke rl-training skill to continue." "$RUN" "$REASON" "$PHASE"
+   - Generate result: uv run .claude/rl-training/scripts/generate_result.py run_NNN/ --monitor-count M --reason "<reasons from decide.py>" [--goal "<goal>"]
+   - Update state: uv run .claude/rl-training/scripts/session.py update <session_dir> --set phase=ITERATE --set current_run=<N+1>
+   - Add iteration: uv run .claude/rl-training/scripts/session.py add-iteration <session_dir> --run N --result "<one-line from decide.py reasons>"
+   - mkdir -p <session_dir>/run_{new N padded}/
+   - If current_run > max_iterations from config: use --set phase=PAUSED instead of ITERATE.
+   - Notify: bash .claude/rl-training/scripts/notify.sh "<notification from decide.py>" --branch "<BRANCH>"
    - Delete this cron: CronDelete with ID <CRON_ID>. Exit.
 
-   If FINISH:
-   - Update session_state.json: phase: "FINISHED"
-   - Notify via notify.sh --branch "<BRANCH>": printf "Training Complete — Run %d\n%s\nGoal reached. Invoke the rl-training skill to finish the branch (merge, PR, keep, or discard)." "$RUN" "$SUMMARY"
+   If decision = FINISH:
+   - uv run .claude/rl-training/scripts/session.py update <session_dir> --set phase=FINISHED
+   - Notify: bash .claude/rl-training/scripts/notify.sh "<notification from decide.py>" --branch "<BRANCH>"
    - Delete this cron: CronDelete with ID <CRON_ID>. Exit.
 
 IMPORTANT:
@@ -657,12 +633,16 @@ Shared scripts in `.claude/rl-training/scripts/`:
 |--------|-------|
 | `init_session.sh "<goal>" "<branch>"` | Initialize session directory + state |
 | `get_latest_run.py <project> [--state S] [--wait N] [--branch B]` | Find active run |
-| `monitor.py <run_path> [--previous file] [--categories cats]` | Fetch metrics → markdown |
+| `monitor.py <run_path> [--previous file] [--categories cats] [--raw-output path]` | Fetch metrics → markdown + raw JSON |
 | `evaluate_policy.py <run_path> --output-dir <dir> [--config path]` | Headless eval with video + metrics |
 | `notify.sh "<message>" [--branch name] [--file path]` | Notification delivery |
 | `tasks/<name>/monitor_metrics.py <raw.json> [--previous prev.json] [--config cfg.md]` | Compute Tier 1 derived quality metrics |
 | `tasks/<name>/eval_metrics.py` (imported by evaluate_policy.py) | Compute Tier 2 detailed quality analysis |
 | `tasks/<name>/monitor_config.md` | Task-specific metrics, thresholds, decision rules |
+| `session.py <cmd> <session-dir> [args]` | Manage session_state.json (get, update, add-iteration, set-feedback) |
+| `decide.py <run-dir> --monitor N --config path [--task-config path] [--session-dir path]` | Deterministic KEEP/BAD/FINISH decision |
+| `feedback.py <session-dir> --run N --tags t1,t2 [--notes text] [--task-config path]` | Persist human feedback to result.md + session_state.json |
+| `generate_result.py <run-dir> --monitor-count N --reason text [--goal text]` | Generate result.md on KILL |
 
 Per-host scripts in `.claude/rl-training/hosts/<name>/`:
 

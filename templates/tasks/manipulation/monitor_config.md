@@ -35,3 +35,18 @@ manipulation
 - dropping: Failing to maintain grasp during transport
 - collision: Hitting obstacles or unintended surfaces
 - too_slow: Overly cautious movements
+
+## Tag-to-Metric Mapping
+
+- fumbling → grasp_stability
+- excessive_force → force_efficiency
+- inefficient_path → approach_smoothness
+- dropping → grasp_stability
+- collision → (no metric)
+- too_slow → (no metric)
+
+## Tier 2 Normalization
+
+- trajectory_jerk: 0, 50, lower_better, 0.35
+- grasp_force_profile: 0, 1, higher_better, 0.35
+- approach_directness: 0, 1, higher_better, 0.30

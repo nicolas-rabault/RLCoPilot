@@ -34,3 +34,17 @@ balance
 - overcorrecting: Large corrective movements for small disturbances
 - drifting: Slowly moving away from target position
 - collapsing: Gradual loss of posture over time
+
+## Tag-to-Metric Mapping
+
+- wobbling → com_stability
+- stiff → energy_efficiency
+- overcorrecting → com_stability
+- drifting → posture_score
+- collapsing → posture_score
+
+## Tier 2 Normalization
+
+- com_jerk: 0, 20, lower_better, 0.35
+- ankle_strategy_score: 0, 1, higher_better, 0.35
+- base_oscillation: 0, 0.5, lower_better, 0.30

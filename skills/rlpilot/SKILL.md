@@ -165,16 +165,46 @@ SUGGESTED_FIXES: <actionable commands the user can run to fix issues>
    - If the user wants to skip the host instead: remove it from the host list
 4. Only proceed to the next host after the current one is fully validated or skipped.
 
-### Step 4: Monitoring & Evaluation (interactive)
+### Step 4a: Monitoring & Evaluation — Generic Setup (interactive)
 
 - What monitoring tool? (WandB, TensorBoard, local logs)
 - If WandB: project path → store in `rl_training_infra.md`
 - Key metric categories and prefixes to track
-- What does "good" vs "bad" look like for this task?
 - Evaluation: what scenarios to test, what metrics, record video?
 - May iterate with user to refine eval strategy
 
-### Step 4b: Monitoring Validation (sequential, one agent per host)
+### Step 4b: Metric Design Agent (interactive)
+
+Spawn the Metric Design Agent to brainstorm and generate task-specific monitoring. This agent:
+
+1. Reads context: robot type (from Step 2), actuators, task objective, simulator, existing reward terms, observation space. Scans the training code for existing WandB log calls to identify what's already logged.
+
+2. Proposes metric categories based on task type:
+   - Locomotion → gait quality (symmetry, periodicity, smoothness, contact patterns)
+   - Manipulation → grasp stability, approach trajectory, contact forces
+   - Balance → CoM tracking, recovery time, base stability
+   - Custom → asks user what "good" and "bad" look like
+
+3. Brainstorms with the user (one question at a time):
+   - What does a bad behavior look like for this specific robot?
+   - Which existing reward terms should be promoted to monitored quality metrics?
+   - What's the minimum quality you'd accept for a KEEP decision?
+
+4. Maps metrics to tiers:
+   - Tier 1 (derived from existing WandB logs): no training code changes needed
+   - Tier 2 (eval-time from simulation state): needs eval_metrics.py
+   - Tier 3 (needs new training-time logging): flags for CODE phase if user approves
+
+5. Generates the task monitoring directory using templates from `${CLAUDE_PLUGIN_ROOT}/templates/tasks/<task-type>/` as starting points:
+   - `.claude/rl-training/tasks/<task-name>/monitor_config.md` — metrics, thresholds, weights, decision rules, human feedback tags
+   - `.claude/rl-training/tasks/<task-name>/monitor_metrics.py` — Tier 1 derived metric computation
+   - `.claude/rl-training/tasks/<task-name>/eval_metrics.py` — Tier 2 detailed quality analysis
+
+6. Updates `config.md` with `Task monitoring: <task-name>`
+
+The Metric Design Agent can also be re-invoked on demand: user says "improve monitoring for this task," or the ITERATE phase detects 3+ iterations with human feedback tags that don't correspond to any monitored metric.
+
+### Step 4c: Monitoring Validation (sequential, one agent per host)
 
 After monitoring config is gathered, validate monitoring access on each validated host **sequentially** — one agent per host, fix issues before moving on.
 

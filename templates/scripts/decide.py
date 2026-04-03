@@ -108,21 +108,31 @@ def compute_decision(run_dir, monitor_num, config_path, task_config_path, sessio
             decision = "BAD"
             eval_requested = True
 
-        # Check reward/quality divergence
-        if task_config.get("reward_vs_quality_divergence") and prev_derived:
-            prev_quality = prev_derived.get("quality_score")
-            if quality is not None and prev_quality is not None:
-                quality_drop = (prev_quality - quality) / max(prev_quality, 1e-6)
-                # Check if reward is improving while quality drops
-                reward_improving = False
-                for rk in [k for k in (current_raw or {}) if "Episode_Reward" in k][:1]:
-                    cv, pv = (current_raw or {}).get(rk), (prev_raw or {}).get(rk)
+        # Check reward/quality divergence over N consecutive monitors
+        declining_limit = task_config.get("quality_declining_monitors", 2)
+        if task_config.get("reward_vs_quality_divergence") and monitor_num >= declining_limit:
+            declining_count = 0
+            for m in range(monitor_num - declining_limit + 1, monitor_num + 1):
+                d_curr = load_json(run_dir / f"derived_metrics_{pad(m)}.json")
+                d_prev = load_json(run_dir / f"derived_metrics_{pad(m - 1)}.json") if m > 1 else None
+                r_curr = load_raw_from_monitor(run_dir / f"monitor_{pad(m)}.md")
+                r_prev = load_raw_from_monitor(run_dir / f"monitor_{pad(m - 1)}.md") if m > 1 else None
+                if not d_curr or not d_prev or not r_curr or not r_prev:
+                    break
+                q_curr, q_prev = d_curr.get("quality_score"), d_prev.get("quality_score")
+                if q_curr is None or q_prev is None:
+                    break
+                q_drop = (q_prev - q_curr) / max(q_prev, 1e-6) > 0.05
+                r_up = False
+                for rk in [k for k in r_curr if "Episode_Reward" in k][:1]:
+                    cv, pv = r_curr.get(rk), r_prev.get(rk)
                     if cv is not None and pv is not None and pv != 0:
-                        if (cv - pv) / abs(pv) > 0.05:
-                            reward_improving = True
-                if reward_improving and quality_drop > 0.05:
-                    reasons.append(f"Reward improving but quality declining ({quality_drop:.0%} drop)")
-                    decision = "BAD"
+                        r_up = (cv - pv) / abs(pv) > 0.05
+                if q_drop and r_up:
+                    declining_count += 1
+            if declining_count >= declining_limit:
+                reasons.append(f"Reward improving but quality declining for {declining_count} consecutive monitors")
+                decision = "BAD"
 
     # Check for FINISH (plateau + quality ok)
     if decision == "KEEP" and monitor_num >= 3:

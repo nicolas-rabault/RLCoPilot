@@ -541,7 +541,7 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
      bash .claude/rl-training/scripts/notify.sh "$MSG" --branch "<BRANCH>"
 
 5. DECIDE using the decision script:
-   Run: uv run .claude/rl-training/scripts/decide.py run_NNN/ --monitor M --config .claude/rl-training/config.md [--task-config TASK_DIR/monitor_config.md] [--session-dir <session_dir>]
+   Run: uv run .claude/rl-training/scripts/decide.py run_NNN/ --monitor M --config .claude/rl-training/config.md --session-dir <session_dir> [--task-config TASK_DIR/monitor_config.md]
    Read the JSON output: {decision, should_kill, reasons, consecutive_bad, eval_requested, notification}.
    If eval_requested is true:
      uv run .claude/rl-training/scripts/session.py update <session_dir> --set eval_requested=true

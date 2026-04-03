@@ -149,12 +149,21 @@ def normalize_score(value, good_min, good_max, metric_type="higher_better"):
     """Normalize a metric value to 0-1 based on good range."""
     if value is None:
         return None
+    if metric_type == "target_range":
+        # Value is best when inside [good_min, good_max], worse as it deviates
+        mid = (good_min + good_max) / 2
+        half_range = (good_max - good_min) / 2
+        if half_range < 1e-6:
+            return 1.0 if abs(value - mid) < 1e-6 else 0.0
+        deviation = abs(value - mid) / half_range
+        return max(0.0, min(1.0, 1.0 - (deviation - 1.0))) if deviation > 1.0 else 1.0
     if metric_type == "lower_better":
         if value <= good_min:
             return 1.0
         if value >= good_max:
             return 0.0
         return 1.0 - (value - good_min) / (good_max - good_min)
+    # higher_better (default)
     if value >= good_max:
         return 1.0
     if value <= good_min:

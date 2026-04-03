@@ -629,7 +629,7 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
      - Add actionable insights backed by evidence from this successful run
      - Update or remove entries contradicted by new evidence
      - Keep entries concise, task-qualified when needed
-     - Commit changes: "learnings: <what was learned>"
+     - Commit changes if any: "learnings: <what was learned>"
    - Notify: bash .claude/rl-training/scripts/notify.sh "<notification from decide.py>" --branch "<BRANCH>"
    - Delete this cron: CronDelete with ID <CRON_ID>. Exit.
 

@@ -30,7 +30,14 @@ Multiple training sessions can run in parallel on different branches and hosts.
 /plugin install rlcopilot@nicolas-rabault/RLCoPilot
 ```
 
-Or for local development:
+### Updating
+
+Auto-updates are **off by default** for third-party plugins. To stay up to date:
+
+- **Enable auto-updates**: `/plugin` → Marketplaces tab → select `nicolas-rabault/RLCoPilot` → enable auto-update
+- **Manual update**: `/plugin marketplace update rlcopilot`
+
+### Local development
 
 ```bash
 claude --plugin-dir /path/to/rlcopilot

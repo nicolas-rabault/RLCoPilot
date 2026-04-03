@@ -5,10 +5,6 @@ Called by evaluate_policy.py after each scenario rollout.
 Not run standalone — imported and called via analyze_trajectory().
 """
 
-import json
-import sys
-from pathlib import Path
-
 import numpy as np
 
 

@@ -60,3 +60,28 @@ When reward_vs_quality_divergence is true:
 - too_conservative: Overly cautious, barely moving
 - unstable_at_speed: Falls or wobbles at higher commanded velocities
 - unnatural_posture: Body orientation or lean looks wrong
+
+## Tag-to-Metric Mapping
+
+Maps human feedback tags to the metrics that should improve when the issue is addressed.
+Tags with no metric mapping are Tier 3 candidates (need new training-time logging).
+
+- asymmetric_gait → symmetry_ratio
+- jerky_motion → action_smoothness
+- shuffling → survival_ratio
+- stumbling → survival_ratio
+- reward_hacking → reward_balance
+- too_conservative → reward_balance
+- unstable_at_speed → (no metric)
+- unnatural_posture → (no metric)
+
+## Tier 2 Normalization
+
+Format: metric, min, max, type, weight
+Used by eval_metrics.py to normalize raw values and compute weighted composite.
+
+- joint_jerk: 0, 100, lower_better, 0.15
+- step_periodicity: 0, 1, higher_better, 0.25
+- stance_swing_ratio: 0.5, 0.7, target_range, 0.20
+- phase_offset: 0, 1, higher_better, 0.25
+- grf_profile_score: 0, 1, higher_better, 0.15

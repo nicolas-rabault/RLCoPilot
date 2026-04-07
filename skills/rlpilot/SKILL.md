@@ -523,7 +523,7 @@ Shared scripts in `.claude/rl-training/scripts/`:
 | `tasks/<name>/eval_metrics.py` (imported by evaluate_policy.py) | Compute Tier 2 detailed quality analysis |
 | `tasks/<name>/monitor_config.md` | Task-specific metrics, thresholds, decision rules |
 | `session.py <cmd> <session-dir> [args]` | Manage session_state.json (get, update, add-iteration, set-feedback) |
-| `decide.py <run-dir> --monitor N --config path [--task-config path] [--session-dir path]` | Deterministic KEEP/BAD/FINISH decision |
+| `decide.py <run-dir> --monitor N --config path [--task-config path] [--session-dir path] [--eval-report path]` | Deterministic KEEP/BAD/FINISH decision (FINISH requires eval confirmation) |
 | `feedback.py <session-dir> --run N --tags t1,t2 [--notes text] [--task-config path]` | Persist human feedback to result.md + session_state.json |
 | `generate_result.py <run-dir> --monitor-count N --reason text [--goal text]` | Generate result.md on KILL |
 | `learnings.py <session-dir> --run <N>` | Gather structured run data for learning agent |

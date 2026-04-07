@@ -1,4 +1,3 @@
-````markdown
 # SETUP-GENERATE
 
 You are generating the shared scripts for RL training. This is fully autonomous — no user interaction needed.
@@ -59,4 +58,3 @@ Each entry is backed by observed evidence from training runs.
 
 - Make all scripts executable: `chmod +x .claude/rl-training/scripts/*.sh .claude/rl-training/scripts/*.py`
 - Present a summary of all generated files to the user for review, listing each file and its purpose
-````

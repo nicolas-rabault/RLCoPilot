@@ -28,10 +28,9 @@ Generate shared scripts in `.claude/rl-training/scripts/`, using templates from 
 1. `init_session.sh` — session state management (branch-based)
 2. `get_latest_run.py` — find active run (WandB or other, based on Monitoring tool in config)
 3. `monitor.py` — fetch metrics and format markdown report
-4. `evaluate_policy.py` — headless eval with video and metrics (framework-specific, generated from scratch based on the project's RL framework from config)
-5. `learnings.py` — gather structured run data for the learning agent
+4. `learnings.py` — gather structured run data for the learning agent
 
-**Do NOT generate:** `notify.sh` (already created by SETUP-NOTIFY), per-host scripts (already created by SETUP-HOSTS), task monitoring files (already created by SETUP-MONITOR).
+**Do NOT generate:** `notify.sh` (already created by SETUP-NOTIFY), per-host scripts (already created by SETUP-HOSTS), task monitoring files (already created by SETUP-MONITOR), `evaluate_policy.py` (already created and validated by SETUP-MONITOR's Eval Design sub-agent).
 
 ## Generate Training Learnings Template
 

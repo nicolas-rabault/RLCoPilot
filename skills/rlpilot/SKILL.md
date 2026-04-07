@@ -104,7 +104,11 @@ For each phase in order, check if it's already done. If not, dispatch a foregrou
 
 ### Metric Design Agent (re-invocable)
 
-The Metric Design Agent (part of SETUP-MONITOR) can also be re-invoked on demand: user says "improve monitoring for this task," or the ITERATE phase detects 3+ iterations with human feedback tags that don't correspond to any monitored metric. To re-invoke, run just the SETUP-MONITOR phase with its checkpoint skipped.
+The Metric Design Agent (part of SETUP-MONITOR sub-agent 1) can also be re-invoked on demand: user says "improve monitoring for this task," or the ITERATE phase detects 3+ iterations with human feedback tags that don't correspond to any monitored metric. To re-invoke, run just the SETUP-MONITOR phase with its checkpoint skipped.
+
+### Eval Design Agent (re-invocable)
+
+The Eval Design Agent (part of SETUP-MONITOR sub-agent 2) can be re-invoked when the user says "improve evaluation for this task" or when behavioral reports are consistently uninformative. To re-invoke, delete `.claude/rl-training/tasks/<task-name>/.eval_validated` and re-run SETUP-MONITOR (sub-agent 1 will be skipped via its checkpoint, only sub-agent 2 runs).
 
 ## Phase 1: CLARIFY
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Evaluate a trained policy across a set of command scenarios.
+"""REFERENCE EXAMPLE — not used for generation.
 
-Usage:
-    uv run .claude/rl-training/scripts/evaluate_policy.py <checkpoint> --config <config_path> [--output <file>]
+This file is a reference showing the general structure of an evaluation script.
+The actual evaluate_policy.py for each task is created by SETUP-MONITOR's Eval Design
+sub-agent through brainstorming, tailored to the specific task with custom behavioral prints.
 
-Output: markdown report with per-scenario metrics.
+See: skills/rlpilot/setup/monitor.md (Sub-agent 2: Eval Design)
 """
 
 import argparse

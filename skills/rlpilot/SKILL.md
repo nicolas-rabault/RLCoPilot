@@ -382,27 +382,34 @@ Delete this cron: CronDelete with ID <CRON_ID>. Exit immediately.
     Capture stderr → append to run_NNN/monitor_{M padded}.md (quality metrics markdown)
     If this fails, log warning but continue with standard metrics only.
 
-3. Evaluate policy (if config says Video: true or Evaluation section exists):
-   uv run .claude/rl-training/scripts/evaluate_policy.py <wandb_run_path> --output-dir run_NNN/ --config .claude/rl-training/config.md
+3. Evaluate policy (mandatory — runs every tick):
+   uv run TASK_DIR/evaluate_policy.py <wandb_run_path> --output-dir run_NNN/ --config .claude/rl-training/config.md
+   This produces:
+   - run_NNN/eval_report.md — behavioral report (primary eval output)
+   - run_NNN/eval_metrics.json — machine-readable metrics
+   - run_NNN/eval_raw_data.json — per-timestep raw data
+   - run_NNN/*.mp4 — video for notifications
    Capture the "Video: <path>" line from stdout — this is the video file path.
-   If eval fails, continue without video (set VIDEO_PATH to empty).
+   If eval fails, notify via notify.sh --branch "<BRANCH>" "Eval error — <error>" and continue without eval data.
 
-3b. Compute detailed quality metrics (if TASK_DIR exists and eval ran):
-    evaluate_policy.py should call TASK_DIR/eval_metrics.py's analyze_trajectory() for each scenario.
-    The task-specific quality breakdown is included in eval_metrics.md and eval_metrics.json.
+3b. Read the behavioral report:
+    Read run_NNN/eval_report.md. This contains the task-specific behavioral analysis
+    designed during SETUP-MONITOR's Eval Design brainstorming. Use it as context for
+    notifications and decision-making.
 
 4. Send pre-decision notification (if enabled and monitor_update in When list):
-   Read the quality metrics markdown from step 2b stderr (appended to monitor file).
+   Compose message from monitor metrics (step 2b) and eval summary (from eval_report.md Summary section).
    If VIDEO_PATH is non-empty and the file exists, attach it:
      bash .claude/rl-training/scripts/notify.sh "$MSG" --branch "<BRANCH>" --file "$VIDEO_PATH"
    Otherwise:
      bash .claude/rl-training/scripts/notify.sh "$MSG" --branch "<BRANCH>"
 
 5. DECIDE using the decision script:
-   Run: uv run .claude/rl-training/scripts/decide.py run_NNN/ --monitor M --config .claude/rl-training/config.md --session-dir <session_dir> [--task-config TASK_DIR/monitor_config.md]
-   Read the JSON output: {decision, should_kill, reasons, consecutive_bad, eval_requested, notification}.
-   If eval_requested is true:
-     uv run .claude/rl-training/scripts/session.py update <session_dir> --set eval_requested=true
+   Run: uv run .claude/rl-training/scripts/decide.py run_NNN/ --monitor M --config .claude/rl-training/config.md --session-dir <session_dir> [--task-config TASK_DIR/monitor_config.md] [--eval-report run_NNN/eval_report.md]
+   Read the JSON output: {decision, should_kill, reasons, consecutive_bad, notification}.
+   NOTE: FINISH requires eval confirmation. If decide.py outputs FINISH but eval_report.md
+   shows detailed_quality_score < quality_finish_minimum, the decision downgrades to KEEP.
+   decide.py handles this internally when --eval-report is provided.
 
 6. ACT based on decide.py output:
 
